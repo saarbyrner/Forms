@@ -238,38 +238,46 @@ export default function Screen02_FormBuilder() {
         </TabPanel>
 
         <TabPanel value={tabValue} index={1}>
-          <Box sx={{ p: 2 }}>
-            <Typography variant="subtitle1" sx={{ mb: 2, color: 'var(--color-text-primary)', fontWeight: 600 }}>
-              Preview
-            </Typography>
-            {(form.sections || []).map((section) => (
-              <Box key={section.id} sx={{ mb: 3 }}>
-                <Typography variant="body1" sx={{ fontWeight: 600, mb: 1 }}>{section.title}</Typography>
-                {(section.items || []).map((item) => (
-                  <Box key={item.id} sx={{ pl: 2 }}>
-                    {item.type === 'subsection' && (
-                      <Typography variant="body2" sx={{ color: 'var(--color-text-secondary)', mb: 1 }}>{item.title}</Typography>
-                    )}
-                    {(item.items || []).map((q) => (
-                      <Box key={q.id} sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 1 }}>
-                        <Typography sx={{ minWidth: 280 }}>{q.description}</Typography>
-                        <Box>
-                          {q.ui?.style === 'checkbox' && (
-                            <input type="checkbox" />
-                          )}
-                          {q.ui?.style === 'switch' && (
-                            <input type="checkbox" />
-                          )}
-                          {q.ui?.style === 'toggle' && (
-                            <MuiButton variant="contained" size="small" sx={{ mr: 1 }}>Yes</MuiButton>
-                          )}
+          <Box sx={{ display: 'grid', gridTemplateColumns: '340px 1fr', gap: 0, minHeight: 'calc(100vh - var(--layout-header-height) - 120px)' }}>
+            <MenuTree
+              form={form}
+              selectedQuestionId={selectedQuestionId}
+              onSelectQuestion={setSelectedQuestionId}
+            />
+
+            <Box sx={{ p: 2 }}>
+              <Typography variant="subtitle1" sx={{ mb: 2, color: 'var(--color-text-primary)', fontWeight: 600 }}>
+                Preview
+              </Typography>
+              {(form.sections || []).map((section) => (
+                <Box key={section.id} sx={{ mb: 3 }}>
+                  <Typography variant="body1" sx={{ fontWeight: 600, mb: 1 }}>{section.title}</Typography>
+                  {(section.items || []).map((item) => (
+                    <Box key={item.id} sx={{ pl: 2 }}>
+                      {item.type === 'subsection' && (
+                        <Typography variant="body2" sx={{ color: 'var(--color-text-secondary)', mb: 1 }}>{item.title}</Typography>
+                      )}
+                      {(item.items || []).map((q) => (
+                        <Box key={q.id} sx={{ display: 'flex', alignItems: 'center', gap: 2, py: 1 }}>
+                          <Typography sx={{ minWidth: 280 }}>{q.description}</Typography>
+                          <Box>
+                            {q.ui?.style === 'checkbox' && (
+                              <input type="checkbox" />
+                            )}
+                            {q.ui?.style === 'switch' && (
+                              <input type="checkbox" />
+                            )}
+                            {q.ui?.style === 'toggle' && (
+                              <MuiButton variant="contained" size="small" sx={{ mr: 1 }}>Yes</MuiButton>
+                            )}
+                          </Box>
                         </Box>
-                      </Box>
-                    ))}
-                  </Box>
-                ))}
-              </Box>
-            ))}
+                      ))}
+                    </Box>
+                  ))}
+                </Box>
+              ))}
+            </Box>
           </Box>
         </TabPanel>
 

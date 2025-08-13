@@ -41,6 +41,7 @@ function TabPanel(props) {
 
 function Screen02_FormResponses() {
   const navigate = useNavigate()
+  const location = window?.history?.state?.usr || {}
 
   // Stubbed data for the grid; wire this to real data later
   const allForms = React.useMemo(() => ([
@@ -51,7 +52,7 @@ function Screen02_FormResponses() {
     { id: 346, name: 'Form with conditional', updatedAt: 'March 21, 2025 12:18 pm' },
   ]), [])
 
-  const [tabValue, setTabValue] = React.useState(0)
+  const [tabValue, setTabValue] = React.useState(location.initialTab === 'completed' ? 1 : 0)
   const [selectedFormName, setSelectedFormName] = React.useState(null)
   const [paginationModel, setPaginationModel] = React.useState({ page: 0, pageSize: 25 })
 
@@ -95,7 +96,7 @@ function Screen02_FormResponses() {
             underline="none"
             onClick={(e) => {
               e.stopPropagation()
-              navigate(`/forms/${params.row.id}/build`)
+              navigate(`/forms/form_answers_sets/forms/${params.row.id}`)
             }}
             sx={{ color: 'var(--color-text-primary)' }}
           >
@@ -124,12 +125,12 @@ function Screen02_FormResponses() {
       cellClassName: 'grid-cell--pad-left',
       renderCell: (params) => (
         <Typography component="span" variant="body2" sx={{ color: 'var(--color-text-primary)' }}>
-          <Link
+              <Link
             component="button"
             underline="none"
             onClick={(e) => {
               e.stopPropagation()
-              navigate(`/forms/form_answers_sets/${params.row.id}`)
+                  navigate(`/forms/form_answers_sets/${params.row.id}`,{ state: { athleteName: params.row.athleteName } })
             }}
             sx={{ color: 'var(--color-text-primary)' }}
           >
@@ -150,7 +151,7 @@ function Screen02_FormResponses() {
             underline="none"
             onClick={(e) => {
               e.stopPropagation()
-              navigate(`/forms/form_answers_sets/${params.row.id}`)
+              navigate(`/forms/form_answers_sets/${params.row.id}`,{ state: { athleteName: params.row.athleteName } })
             }}
             sx={{ color: 'var(--color-text-primary)' }}
           >
@@ -326,6 +327,7 @@ function Screen02_FormResponses() {
               rows={completedFilteredRows}
               columns={completedColumns}
               disableRowSelectionOnClick
+              onRowDoubleClick={(params) => navigate(`/forms/form_answers_sets/${params.row.id}`, { state: { athleteName: params.row.athleteName } })}
               pagination
               paginationModel={paginationModel}
               onPaginationModelChange={setPaginationModel}

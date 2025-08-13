@@ -10,7 +10,8 @@ import {
   InputAdornment,
   IconButton,
   Menu,
-  MenuItem
+  MenuItem,
+  Link
 } from '@mui/material'
 import { DataGrid, GridPagination } from '@mui/x-data-grid'
 import { SearchOutlined, ExpandMoreOutlined, MoreVertOutlined } from '@mui/icons-material'
@@ -31,12 +32,24 @@ function Screen01_FormsHome() {
   const columns = useMemo(() => [
     {
       field: 'title',
-      headerName: 'Forms',
-      flex: 1.6,
-      minWidth: 260,
+      headerName: 'Template',
+      flex: 1,
+      minWidth: 360,
+      headerClassName: 'grid-cell--pad-left',
+      cellClassName: 'grid-cell--pad-left',
       renderCell: (params) => (
-        <Typography variant="body2" sx={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
-          {params.value}
+        <Typography component="span" variant="body2" sx={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
+          <Link
+            component="button"
+            underline="none"
+            onClick={(e) => {
+              e.stopPropagation()
+              navigate(`/forms/${params.row.id}/build`)
+            }}
+            sx={{ color: 'var(--color-text-primary)' }}
+          >
+            {params.value}
+          </Link>
         </Typography>
       )
     },
@@ -52,8 +65,8 @@ function Screen01_FormsHome() {
       flex: 1,
       minWidth: 260,
       renderCell: (params) => (
-        <Typography 
-          variant="body2" 
+        <Typography
+          variant="body2"
           sx={{ color: 'var(--color-text-secondary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
           title={params.value}
         >
@@ -68,8 +81,10 @@ function Screen01_FormsHome() {
     },
     {
       field: 'updated',
-      headerName: 'Last updated',
-      width: 180,
+      headerName: 'Last updated at',
+      width: 260,
+      headerClassName: 'grid-cell--pad-right',
+      cellClassName: 'grid-cell--pad-right',
     },
     {
       field: 'actions',
@@ -79,6 +94,8 @@ function Screen01_FormsHome() {
       width: 56,
       align: 'right',
       headerAlign: 'right',
+      headerClassName: 'grid-cell--pad-right',
+      cellClassName: 'grid-cell--pad-right',
       renderCell: (params) => (
         <IconButton size="small" aria-label="more" onClick={(e) => {
           e.stopPropagation();
@@ -89,9 +106,9 @@ function Screen01_FormsHome() {
         </IconButton>
       )
     },
-  ], [])
+  ], [navigate])
 
-  const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 5 })
+  const [paginationModel, setPaginationModel] = useState({ page: 0, pageSize: 25 })
   const [actionMenuAnchor, setActionMenuAnchor] = useState(null)
   const [actionRowId, setActionRowId] = useState(null)
   const [assignOpen, setAssignOpen] = useState(false)
@@ -110,25 +127,7 @@ function Screen01_FormsHome() {
     }))
   ), [])
 
-  function Footer() {
-    return (
-      <Box sx={{
-        display: 'flex', alignItems: 'center', gap: 2,
-        borderTop: '1px solid var(--color-border-primary)',
-        px: 2, py: 1,
-        bgcolor: 'var(--color-background-primary)'
-      }}>
-        <Typography variant="caption" sx={{ color: 'var(--color-text-secondary)' }}>Rows 5</Typography>
-        <Box sx={{ ml: 'auto' }}>
-          <GridPagination
-            sx={{
-              '& .MuiTablePagination-displayedRows, & .MuiTablePagination-selectLabel, & .MuiTablePagination-select': { display: 'none' }
-            }}
-          />
-        </Box>
-      </Box>
-    )
-  }
+  // Removed custom Footer to align with form_answers_sets styling
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, bgcolor: 'var(--color-background-primary)' }}>
@@ -187,11 +186,12 @@ function Screen01_FormsHome() {
       </Button>
     </Box>
     <Divider />
-    <Box sx={{ 
-      height: 560, width: '100%', 
-      '& .MuiDataGrid-columnHeaders': { 
+    <Box sx={{
+      height: 560,
+      width: '100%',
+      '& .MuiDataGrid-root': { border: 'none' },
+      '& .MuiDataGrid-columnHeaders': {
         backgroundColor: 'var(--color-background-primary)',
-        borderBottom: '1px solid var(--color-border-primary)',
         '& .MuiDataGrid-columnHeaderTitle': {
           fontWeight: 600,
           fontSize: '14px'
@@ -202,33 +202,22 @@ function Screen01_FormsHome() {
         display: 'flex',
         alignItems: 'center'
       },
-      '& .MuiDataGrid-withBorderColor': {
-        borderColor: 'transparent'
-      },
-      '& .MuiCheckbox-root': {
-        color: 'var(--color-primary)'
-      },
-      '& .MuiCheckbox-root.Mui-checked': {
-        color: 'var(--color-primary)'
-      }
+      '& .MuiDataGrid-withBorderColor': {},
+      '& .grid-cell--pad-left': { pl: 3, paddingLeft: '24px !important' },
+      '& .grid-cell--pad-right': { pr: 3, paddingRight: '24px !important' },
+      '& .MuiDataGrid-footerContainer': { px: 3 },
     }}>
       <DataGrid
         rows={rows}
         columns={columns}
-        checkboxSelection
         disableRowSelectionOnClick
-        onRowClick={(params) => {
-          // Prototype: always open example form id f-378
-          navigate('/forms/f-378/build')
-        }}
         pagination
         paginationModel={paginationModel}
         onPaginationModelChange={setPaginationModel}
-        pageSizeOptions={[5, 10, 25]}
-        density="comfortable"
-        slots={{ footer: Footer, pagination: GridPagination }}
+        pageSizeOptions={[25, 50, 100]}
+        slots={{ pagination: GridPagination }}
         initialState={{
-          pagination: { paginationModel: { pageSize: 5 } },
+          pagination: { paginationModel: { pageSize: 25 } },
         }}
       />
     </Box>
