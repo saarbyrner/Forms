@@ -15,6 +15,7 @@ import { ArrowDropDownOutlined } from '@mui/icons-material'
 import { DataGrid, GridPagination } from '@mui/x-data-grid'
 import '../../styles/design-tokens.css'
 import { Button, StatusChip, Icon } from '../../components'
+import { assessments } from '../../data'
 
 function a11yProps(index) {
   return {
@@ -43,30 +44,53 @@ function Screen02_FormResponses() {
   const navigate = useNavigate()
   const location = window?.history?.state?.usr || {}
 
-  // Stubbed data for the grid; wire this to real data later
-  const allForms = React.useMemo(() => ([
-    { id: 378, name: 'Test - Toggle Switch', updatedAt: 'July 17, 2025 11:22 am' },
-    { id: 364, name: 'RFU Exit Medical', updatedAt: 'May 20, 2025 11:49 am' },
-    { id: 348, name: 'More than equal', updatedAt: 'April 09, 2025 9:57 am' },
-    { id: 347, name: 'Hilly test', updatedAt: 'March 28, 2025 2:03 pm' },
-    { id: 346, name: 'Form with conditional', updatedAt: 'March 21, 2025 12:18 pm' },
-  ]), [])
+  function slugify(s) {
+    return String(s || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '')
+  }
+
+  // Build Forms tab rows from real assessment templates
+  const allForms = React.useMemo(() => {
+    const templateToInfo = new Map()
+    for (const a of assessments) {
+      const template = a.assessment_template || 'Untitled'
+      const slug = slugify(template)
+      const updatedAt = a.updated_at ? new Date(a.updated_at) : (a.assessment_date ? new Date(a.assessment_date) : null)
+      const prev = templateToInfo.get(slug)
+      if (!prev) {
+        templateToInfo.set(slug, { id: slug, name: template, updatedAt })
+      } else if (updatedAt && prev.updatedAt && updatedAt > prev.updatedAt) {
+        prev.updatedAt = updatedAt
+      }
+    }
+    return Array.from(templateToInfo.values()).map(f => ({
+      id: f.id,
+      name: f.name,
+      updatedAt: f.updatedAt ? f.updatedAt.toLocaleString() : '—'
+    }))
+  }, [])
 
   const [tabValue, setTabValue] = React.useState(location.initialTab === 'completed' ? 1 : 0)
   const [selectedFormName, setSelectedFormName] = React.useState(null)
   const [paginationModel, setPaginationModel] = React.useState({ page: 0, pageSize: 25 })
 
-  // Stubbed data for Completed tab based on the provided dump
-  const completedRows = React.useMemo(() => ([
-    { id: 467635, athleteName: 'Allan Santos Athlete', name: 'Test - Toggle Switch', productArea: 'Medical', category: 'Other', examiner: 'Bhuvan Bhatt', completionDate: 'Jul 17, 2025', status: 'Complete' },
-    { id: 467105, athleteName: 'test', name: 'Test - Toggle Switch', productArea: 'Medical', category: 'Other', examiner: 'Bhuvan Bhatt', completionDate: 'Jul 17, 2025', status: 'Complete' },
-    { id: 467101, athleteName: 'Allan Santos', name: 'Test - Toggle Switch', productArea: 'Medical', category: 'Other', examiner: 'Bhuvan Bhatt', completionDate: 'Jul 17, 2025', status: 'Complete' },
-    { id: 467095, athleteName: 'Akanksha', name: 'Test - Toggle Switch', productArea: 'Medical', category: 'Other', examiner: 'Bhuvan Bhatt', completionDate: 'Jul 17, 2025', status: 'Complete' },
-    { id: 467088, athleteName: 'Adam Conway', name: 'Test - Toggle Switch', productArea: 'Medical', category: 'Other', examiner: 'Bhuvan Bhatt', completionDate: 'Jul 17, 2025', status: 'Complete' },
-    { id: 467087, athleteName: 'Adam Conway', name: 'General Medical', productArea: 'Medical', category: 'Other', examiner: 'Willian Gama', completionDate: 'Jul 2, 2025', status: 'Complete' },
-    { id: 467083, athleteName: 'Adam Conway', name: 'General Medical', productArea: 'Medical', category: 'Other', examiner: 'Willian Gama', completionDate: 'Jul 2, 2025', status: 'Complete' },
-    { id: 467079, athleteName: 'Adam Conway', name: 'Kiosk Test', productArea: 'Medical', category: 'Other', examiner: 'Adam Conway', completionDate: 'Jun 26, 2025', status: 'Complete' },
-  ]), [])
+  // Completed tab rows from real assessments
+  const completedRows = React.useMemo(() => (
+    assessments
+      .filter(a => String(a.status || '').toLowerCase() === 'completed')
+      .map(a => ({
+        id: a.id,
+        athleteName: a.athlete_name,
+        name: a.assessment_template,
+        productArea: a.assessment_type,
+        category: 'Assessment',
+        examiner: a.assessor,
+        completionDate: a.assessment_date,
+        status: 'Complete'
+      }))
+  ), [])
 
   const [completedFormName, setCompletedFormName] = React.useState(null)
 

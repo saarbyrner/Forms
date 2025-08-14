@@ -5,7 +5,7 @@ import { ArrowDropDownOutlined } from '@mui/icons-material'
 import { DataGrid, GridPagination } from '@mui/x-data-grid'
 import '../../styles/design-tokens.css'
 import { Button, Icon, StatusChip } from '../../components'
-import { athletesSimple } from '../../data'
+import { athletesSimple, assessments } from '../../data'
 
 // Map of known form ids to names for display only
 const FORM_TITLES = {
@@ -22,22 +22,48 @@ function Screen03_FormResponsesForTemplate() {
 
   const formTitle = React.useMemo(() => FORM_TITLES[Number(formId)] || `Form ${formId}`,[formId])
 
-  // Dummy assignment: choose a subset of athletes as the ones assigned this form
-  const assignedAthletes = React.useMemo(() => {
-    // Take first 12 athletes to simulate assignment
-    return athletesSimple.slice(0, 12).map(a => a.name)
-  }, [])
+  function slugify(s) {
+    return String(s || '')
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '')
+  }
 
-  // Build a dummy responses dataset for the selected form
+  const targetSlug = React.useMemo(() => slugify(formTitle), [formTitle])
+
+  // Assigned athletes: those that have at least one assessment for this template
+  const assignedAthletes = React.useMemo(() => {
+    const names = new Set(
+      assessments
+        .filter(a => slugify(a.assessment_template) === targetSlug)
+        .map(a => a.athlete_name)
+    )
+    // If no matches, fall back to first 12 athletes
+    return (names.size > 0 ? Array.from(names) : athletesSimple.slice(0, 12).map(a => a.name))
+  }, [targetSlug])
+
+  // Responses: reflect latest status based on presence of an assessment record
   const allResponses = React.useMemo(() => {
-    const statuses = ['Not started', 'In progress', 'Complete']
-    return assignedAthletes.map((name, idx) => ({
-      id: `${formId}-${idx + 1}`,
-      athleteName: name,
-      lastUpdated: idx % 3 === 0 ? '—' : new Date(2025, 6, 23, 17, 22).toLocaleString(),
-      status: statuses[idx % statuses.length]
-    }))
-  }, [assignedAthletes, formId])
+    const latestByAthlete = new Map()
+    for (const a of assessments.filter(a => slugify(a.assessment_template) === targetSlug)) {
+      const key = a.athlete_name
+      const when = new Date(a.updated_at || a.assessment_date)
+      const prev = latestByAthlete.get(key)
+      if (!prev || when > prev.when) {
+        latestByAthlete.set(key, { status: a.status, when })
+      }
+    }
+    return assignedAthletes.map((name, idx) => {
+      const rec = latestByAthlete.get(name)
+      const status = rec ? (String(rec.status).toLowerCase() === 'completed' ? 'Complete' : rec.status) : 'Not started'
+      return {
+        id: `${targetSlug}-${idx + 1}`,
+        athleteName: name,
+        lastUpdated: rec ? rec.when.toLocaleString() : '—',
+        status
+      }
+    })
+  }, [assignedAthletes, targetSlug])
 
   const [selectedAthlete, setSelectedAthlete] = React.useState(null)
   const [selectedStatus, setSelectedStatus] = React.useState(null)

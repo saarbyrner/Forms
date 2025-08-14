@@ -6,21 +6,77 @@ import '../../styles/design-tokens.css'
 import { Button, Icon, StatusChip } from '../../components'
 import testToggleTemplate from '../../data/formTemplates/test-toggle-switch.json'
 import MenuTree from '../../components/forms/builder/MenuTree'
+import { athletes, questionnaires, assessments } from '../../data'
 
 function getTemplateForAnswerSet(answerSetId) {
   // Prototype mapping: use the test toggle template for all
   return testToggleTemplate
 }
 
-function buildStubAnswers(template) {
-  // Build a stub answers object keyed by question id
+function findAthleteNameFromContext(answerSetId, locationState) {
+  if (locationState?.athleteName) return locationState.athleteName
+  // Fallback: try to find by id in assessments
+  const assess = assessments.find(a => String(a.id) === String(answerSetId))
+  return assess?.athlete_name || 'Athlete'
+}
+
+function deriveBooleanFromValue(value) {
+  if (typeof value === 'boolean') return value
+  if (typeof value === 'number') return value > 0
+  if (typeof value === 'string') {
+    const v = value.toLowerCase()
+    if (['yes', 'true', 'y', 'ok'].includes(v)) return true
+    if (['no', 'false', 'n'].includes(v)) return false
+    // Non-empty strings treated as true for demo purposes
+    return v.trim().length > 0
+  }
+  return false
+}
+
+function mapQuestionToAnswer(question, athlete, latestQuestionnaire, latestAssessment) {
+  const label = (question.label || question.description || '').toLowerCase()
+  // Very simple heuristics to map to real data fields
+  if (label.includes('injur')) return deriveBooleanFromValue(athlete?.injury_status && athlete.injury_status !== 'Healthy')
+  if (label.includes('fit') || label.includes('ready')) return deriveBooleanFromValue(athlete?.fitness_level && ['excellent', 'very good', 'good'].includes(String(athlete.fitness_level).toLowerCase()))
+  if (label.includes('sleep')) {
+    const resp = latestQuestionnaire?.responses?.find(r => String(r.variable).includes('sleep'))
+    return deriveBooleanFromValue(resp ? Number(resp.response) >= 7 : false)
+  }
+  if (label.includes('mood') || label.includes('mental')) {
+    const resp = latestQuestionnaire?.responses?.find(r => String(r.variable).includes('mood'))
+    return deriveBooleanFromValue(resp ? Number(resp.response) >= 6 : false)
+  }
+  if (label.includes('pain')) {
+    const resp = latestQuestionnaire?.responses?.find(r => String(r.variable).includes('pain'))
+    return deriveBooleanFromValue(resp ? Number(resp.response) <= 3 : true)
+  }
+  if (label.includes('goal') || label.includes('perform')) {
+    const overall = latestAssessment?.overall_score
+    return deriveBooleanFromValue(typeof overall === 'number' ? overall >= 75 : true)
+  }
+  // Default: positive if wellbeing overall_score high
+  const qOverall = latestQuestionnaire?.overall_score
+  return deriveBooleanFromValue(typeof qOverall === 'number' ? qOverall >= 7 : false)
+}
+
+function buildAnswersFromRealData(template, athleteName) {
+  // Find athlete by name
+  const athlete = athletes.find(a => `${a.firstname} ${a.lastname}`.toLowerCase() === String(athleteName).toLowerCase())
+  // Get latest questionnaire and assessment for athlete
+  const latestQuestionnaire = questionnaires
+    .filter(q => q.athlete_name.toLowerCase() === String(athleteName).toLowerCase())
+    .sort((a, b) => new Date(b.questionnaire_date) - new Date(a.questionnaire_date))[0]
+  const latestAssessment = assessments
+    .filter(a => a.athlete_name.toLowerCase() === String(athleteName).toLowerCase())
+    .sort((a, b) => new Date(b.assessment_date) - new Date(a.assessment_date))[0]
+
   const answers = {}
   for (const section of template.sections || []) {
     for (const item of section.items || []) {
-      if (item.type === 'subsection') {
-        for (const q of item.items || []) {
-          // Alternate true/false for demo
-          answers[q.id] = Math.random() > 0.5
+      const items = item.type === 'subsection' ? (item.items || []) : [item]
+      for (const q of items) {
+        if (['boolean','checkbox','switch'].includes(q.type)) {
+          answers[q.id] = mapQuestionToAnswer(q, athlete, latestQuestionnaire, latestAssessment)
         }
       }
     }
@@ -34,8 +90,13 @@ export default function Screen04_FormAnswerSet() {
   const location = useLocation()
 
   const template = React.useMemo(() => getTemplateForAnswerSet(answerSetId), [answerSetId])
+  const athleteName = React.useMemo(() => findAthleteNameFromContext(answerSetId, location.state), [answerSetId, location.state])
   const [isEditMode, setIsEditMode] = React.useState(false)
-  const [answers, setAnswers] = React.useState(() => buildStubAnswers(template))
+  const [answers, setAnswers] = React.useState(() => buildAnswersFromRealData(template, athleteName))
+
+  React.useEffect(() => {
+    setAnswers(buildAnswersFromRealData(template, athleteName))
+  }, [template, athleteName])
 
   // Flatten questions for navigation
   const allQuestions = React.useMemo(() => {
@@ -88,7 +149,7 @@ export default function Screen04_FormAnswerSet() {
             <ArrowBackOutlined fontSize="small" />
           </IconButton>
           <Typography variant="h5" sx={{ color: 'var(--color-text-primary)', fontWeight: 600 }}>
-            {location.state?.athleteName || 'Athlete'}
+            {athleteName || 'Athlete'}
           </Typography>
           <Box sx={{ ml: 'auto', display: 'flex', alignItems: 'center', gap: 2 }}>
             <MuiButton

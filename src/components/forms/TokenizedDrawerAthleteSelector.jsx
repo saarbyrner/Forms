@@ -1,6 +1,6 @@
 import React from 'react'
 import { ThemeProvider, createTheme, CssBaseline } from '@mui/material'
-import { DrawerAthleteSelector as VendorDrawerAthleteSelector } from '../../vendor/athlete-selector/src/components/AthleteSelector/DrawerAthleteSelector'
+import { VendorDrawerAthleteSelector as VendorDrawerAthleteSelector } from './VendorDrawerAthleteSelectorStub'
 
 function TokenizedDrawerAthleteSelector(props) {
   const theme = React.useMemo(() => {
