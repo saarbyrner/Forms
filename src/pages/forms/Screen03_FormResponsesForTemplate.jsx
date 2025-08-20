@@ -30,7 +30,7 @@ function Screen03_FormResponsesForTemplate() {
 
   // Build a dummy responses dataset for the selected form
   const allResponses = React.useMemo(() => {
-    const statuses = ['Not started', 'In progress', 'Complete']
+    const statuses = ['Not started', 'In progress', 'Complete', 'Done']
     return assignedAthletes.map((name, idx) => ({
       id: `${formId}-${idx + 1}`,
       athleteName: name,
@@ -77,7 +77,7 @@ function Screen03_FormResponsesForTemplate() {
       headerName: 'Status',
       minWidth: 160,
       renderCell: (params) => (
-        <StatusChip status={params.value} type={params.value === 'Complete' ? 'success' : params.value === 'In progress' ? 'primary' : 'default'} />
+        <StatusChip status={params.value} type={params.value === 'Complete' || params.value === 'Done' ? 'success' : params.value === 'In progress' ? 'primary' : 'default'} />
       )
     },
     {
@@ -123,7 +123,7 @@ function Screen03_FormResponsesForTemplate() {
 
           <Autocomplete
             size="small"
-            options={["Not started", "In progress", "Complete"]}
+            options={["Not started", "In progress", "Complete", "Done"]}
             value={selectedStatus}
             onChange={(_, v) => setSelectedStatus(v)}
             popupIcon={<ArrowDropDownOutlined fontSize="small" />}
