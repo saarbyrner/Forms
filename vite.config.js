@@ -9,16 +9,9 @@ export default defineConfig({
   },
   
   build: {
+    target: 'es2015',
     commonjsOptions: {
       include: [/node_modules/]
-    },
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          'mui-core': ['@mui/material', '@mui/icons-material'],
-          'mui-x': ['@mui/x-data-grid', '@mui/x-date-pickers']
-        }
-      }
     }
   },
   
@@ -28,14 +21,14 @@ export default defineConfig({
       '@mui/icons-material', 
       '@mui/x-data-grid',
       '@mui/x-date-pickers',
-      '@mui/x-data-grid/models',
       '@emotion/react',
       '@emotion/styled'
-    ],
-    force: true
+    ]
   },
   
-  define: {
-    global: 'globalThis'
+  resolve: {
+    alias: {
+      '@mui/x-data-grid': '@mui/x-data-grid/index.js'
+    }
   }
 })
