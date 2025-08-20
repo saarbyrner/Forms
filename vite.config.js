@@ -9,10 +9,15 @@ export default defineConfig({
   },
   
   build: {
+    commonjsOptions: {
+      include: [/node_modules/]
+    },
     rollupOptions: {
-      external: [],
       output: {
-        manualChunks: undefined
+        manualChunks: {
+          'mui-core': ['@mui/material', '@mui/icons-material'],
+          'mui-x': ['@mui/x-data-grid', '@mui/x-date-pickers']
+        }
       }
     }
   },
@@ -20,9 +25,17 @@ export default defineConfig({
   optimizeDeps: {
     include: [
       '@mui/material',
-      '@mui/icons-material',
+      '@mui/icons-material', 
       '@mui/x-data-grid',
-      '@mui/x-date-pickers'
-    ]
+      '@mui/x-date-pickers',
+      '@mui/x-data-grid/models',
+      '@emotion/react',
+      '@emotion/styled'
+    ],
+    force: true
+  },
+  
+  define: {
+    global: 'globalThis'
   }
 })
