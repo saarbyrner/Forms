@@ -12,9 +12,13 @@ import {
   Link
 } from '@mui/material'
 import { ArrowDropDownOutlined } from '@mui/icons-material'
-import { DataGrid, GridPagination } from '@mui/x-data-grid'
+import { DataGrid, GridPagination, GridToolbar } from '@mui/x-data-grid'
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
+import { DatePicker } from '@mui/x-date-pickers/DatePicker'
+import dayjs from 'dayjs'
 import '../../styles/design-tokens.css'
-import { Button, StatusChip, Icon } from '../../components'
+import { Button, StatusChip, Icon, PlayerAvatar } from '../../components'
 
 function a11yProps(index) {
   return {
@@ -52,7 +56,9 @@ function Screen02_FormResponses() {
     { id: 346, name: 'Form with conditional', updatedAt: 'March 21, 2025 12:18 pm' },
   ]), [])
 
-  const [tabValue, setTabValue] = React.useState(location.initialTab === 'completed' ? 1 : 0)
+  const [tabValue, setTabValue] = React.useState(
+    location.initialTab === 'compliance' ? 2 : (location.initialTab === 'completed' ? 1 : 0)
+  )
   const [selectedFormName, setSelectedFormName] = React.useState(null)
   const [paginationModel, setPaginationModel] = React.useState({ page: 0, pageSize: 25 })
 
@@ -199,6 +205,175 @@ function Screen02_FormResponses() {
     },
   ]), [navigate])
 
+  // Compliance tab: group by player with collapsible sections
+  // Prototype data set for compliance view: includes mixed statuses and timestamps
+  const complianceRows = React.useMemo(() => ([
+    { id: 500001, athleteName: 'Harry Anderson', name: 'Medical Exam', lastUpdated: '2025-01-10T10:15:00Z', status: 'Draft' },
+    { id: 500002, athleteName: 'Harry Anderson', name: 'Ortho Exam', lastUpdated: '2025-01-10T10:15:00Z', status: 'Draft' },
+    { id: 500003, athleteName: 'Harry Anderson', name: 'Medical History Form', lastUpdated: '2025-01-05T10:15:00Z', status: 'Complete' },
+    { id: 500004, athleteName: 'Harry Anderson', name: 'Use & Disclosure/Release', lastUpdated: '2025-01-10T10:15:00Z', status: 'Not started' },
+    { id: 500005, athleteName: 'Harry Anderson', name: 'Tryout Agreement', lastUpdated: '2025-01-10T10:15:00Z', status: 'Not started' },
+    { id: 500006, athleteName: 'Harry Anderson', name: 'Notice of Privacy Practice', lastUpdated: '2025-01-10T10:15:00Z', status: 'Not started' },
+    { id: 500007, athleteName: 'Harry Anderson', name: 'Prescription Pick up', lastUpdated: '2025-01-10T10:15:00Z', status: 'Not started' },
+    { id: 500008, athleteName: 'Harry Anderson', name: 'Medical Update Release', lastUpdated: '2025-01-10T10:15:00Z', status: 'Not started' },
+
+    { id: 500101, athleteName: 'Bill Bryson', name: 'Medical Exam', lastUpdated: '2025-01-10T10:15:00Z', status: 'Done' },
+    { id: 500102, athleteName: 'Bill Bryson', name: 'Ortho Exam', lastUpdated: '2025-01-10T10:15:00Z', status: 'Complete' },
+    { id: 500103, athleteName: 'Bill Bryson', name: 'Medical History Form', lastUpdated: '2025-01-05T10:15:00Z', status: 'Complete' },
+    { id: 500104, athleteName: 'Bill Bryson', name: 'Use & Disclosure/Release', lastUpdated: '2025-01-10T10:15:00Z', status: 'Not started' },
+
+    { id: 500201, athleteName: 'Elena Rodriguez', name: 'Medical Exam', lastUpdated: '2025-01-11T09:20:00Z', status: 'In progress' },
+    { id: 500202, athleteName: 'Elena Rodriguez', name: 'Ortho Exam', lastUpdated: '2025-01-11T09:20:00Z', status: 'Not started' },
+    { id: 500203, athleteName: 'Elena Rodriguez', name: 'Medical History Form', lastUpdated: '2025-01-09T13:00:00Z', status: 'Draft' },
+  ]), [])
+
+  const [selectedPlayer, setSelectedPlayer] = React.useState(null)
+  const [complianceFormName, setComplianceFormName] = React.useState(null)
+  const [selectedStatus, setSelectedStatus] = React.useState(null)
+  const [startDate, setStartDate] = React.useState(null)
+  const [endDate, setEndDate] = React.useState(null)
+
+  const statusOptions = React.useMemo(() => ['Complete', 'Done', 'Draft', 'Not started', 'In progress'], [])
+
+  const complianceFilteredRows = React.useMemo(() => {
+    let rows = complianceRows
+    if (selectedPlayer) rows = rows.filter(r => r.athleteName === selectedPlayer)
+    if (complianceFormName) rows = rows.filter(r => r.name.toLowerCase().includes(String(complianceFormName).toLowerCase()))
+    if (selectedStatus) rows = rows.filter(r => r.status === selectedStatus)
+    if (startDate) rows = rows.filter(r => dayjs(r.lastUpdated).isAfter(dayjs(startDate).startOf('day')) || dayjs(r.lastUpdated).isSame(dayjs(startDate).startOf('day')))
+    if (endDate) rows = rows.filter(r => dayjs(r.lastUpdated).isBefore(dayjs(endDate).endOf('day')) || dayjs(r.lastUpdated).isSame(dayjs(endDate).endOf('day')))
+    return rows
+  }, [complianceRows, selectedPlayer, complianceFormName, selectedStatus, startDate, endDate])
+
+  const complianceGroups = React.useMemo(() => {
+    const map = new Map()
+    for (const row of complianceFilteredRows) {
+      const list = map.get(row.athleteName) || []
+      list.push(row)
+      map.set(row.athleteName, list)
+    }
+    return Array.from(map.entries())
+      .map(([athleteName, rows]) => ({ athleteName, rows }))
+      .sort((a, b) => a.athleteName.localeCompare(b.athleteName))
+  }, [complianceFilteredRows])
+
+  const [expandedGroups, setExpandedGroups] = React.useState({})
+  const toggleGroup = (athleteName) => {
+    setExpandedGroups(prev => ({ ...prev, [athleteName]: !prev[athleteName] }))
+  }
+  const areAllExpanded = React.useMemo(() => {
+    if (complianceGroups.length === 0) return false
+    return complianceGroups.every(g => expandedGroups[g.athleteName])
+  }, [complianceGroups, expandedGroups])
+  const handleExpandCollapseAll = () => {
+    if (areAllExpanded) {
+      setExpandedGroups({})
+    } else {
+      const all = {}
+      for (const g of complianceGroups) all[g.athleteName] = true
+      setExpandedGroups(all)
+    }
+  }
+
+
+
+  // Build grid rows (group header + children if expanded)
+  const complianceGridRows = React.useMemo(() => {
+    const rows = []
+    for (const group of complianceGroups) {
+      const complete = group.rows.filter(r => r.status === 'Complete').length
+      const total = group.rows.length
+      rows.push({
+        id: `group-${group.athleteName}`,
+        type: 'group',
+        athleteName: group.athleteName,
+        complete,
+        total,
+      })
+      if (expandedGroups[group.athleteName]) {
+        for (const r of group.rows) {
+          rows.push({ ...r, type: 'child' })
+        }
+      }
+    }
+    return rows
+  }, [complianceGroups, expandedGroups])
+
+  const complianceColumns = React.useMemo(() => ([
+    {
+      field: 'item',
+      headerName: 'Player / Form',
+      flex: 1,
+      minWidth: 320,
+      sortable: false,
+      headerClassName: 'grid-cell--pad-left',
+      cellClassName: 'grid-cell--pad-left',
+      renderCell: (params) => {
+        const row = params.row
+        if (row.type === 'group') {
+          const isOpen = !!expandedGroups[row.athleteName]
+          return (
+            <Box onClick={() => toggleGroup(row.athleteName)} sx={{ display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer' }}>
+              <Icon icon={isOpen ? 'expand_more' : 'chevron_right'} />
+              <Typography variant="body2" sx={{ fontWeight: 600, color: 'var(--color-text-primary)' }}>
+                {row.athleteName}
+              </Typography>
+            </Box>
+          )
+        }
+        return (
+          <Typography component="span" variant="body2" sx={{ color: 'var(--color-text-primary)', fontWeight: 600 }}>
+            <Link
+              component="button"
+              underline="none"
+              onClick={(e) => {
+                e.stopPropagation()
+                navigate(`/forms/form_answers_sets/${row.id}`, { state: { athleteName: row.athleteName } })
+              }}
+              sx={{ color: 'var(--color-text-primary)' }}
+            >
+              {row.name}
+            </Link>
+          </Typography>
+        )
+      }
+    },
+    {
+      field: 'lastUpdated',
+      headerName: 'Last updated',
+      minWidth: 220,
+      renderCell: (params) => {
+        const row = params.row
+        if (row.type === 'group') return null
+        return (
+          <Box sx={{ color: 'var(--color-text-primary)' }}>
+            {dayjs(row.lastUpdated).format('MMMM D, YYYY [at] h:mm a')}
+          </Box>
+        )
+      }
+    },
+    {
+      field: 'status',
+      headerName: 'Status',
+      minWidth: 140,
+      headerClassName: 'grid-cell--pad-right',
+      cellClassName: 'grid-cell--pad-right',
+      align: 'right',
+      headerAlign: 'right',
+      sortable: false,
+      renderCell: (params) => {
+        const row = params.row
+        if (row.type === 'group') {
+          return (
+            <StatusChip status={`${row.complete}/${row.total}`} type="primary" />
+          )
+        }
+        const type = row.status === 'Complete' || row.status === 'Done' ? 'success' : row.status === 'Draft' ? 'warning' : row.status === 'In progress' ? 'primary' : 'error'
+        return <StatusChip status={row.status} type={type} />
+      }
+    }
+  ]), [expandedGroups, navigate])
+
   return (
     <Box sx={{ py: 2, bgcolor: 'var(--color-background-primary)', height: '100%' }}>
       <Paper elevation={0} sx={{ borderRadius: 'var(--radius-md)', overflow: 'hidden' }}>
@@ -233,6 +408,7 @@ function Screen02_FormResponses() {
         >
           <Tab label="Forms" {...a11yProps(0)} />
           <Tab label="Completed" {...a11yProps(1)} />
+          <Tab label="Compliance" {...a11yProps(2)} />
         </Tabs>
         {/* Baseline handled via borderBottom on Tabs */}
 
@@ -333,6 +509,72 @@ function Screen02_FormResponses() {
               onPaginationModelChange={setPaginationModel}
               pageSizeOptions={[25, 50, 100]}
               slots={{ pagination: GridPagination }}
+            />
+          </Box>
+        </TabPanel>
+
+        {/* Compliance tab */}
+        <TabPanel value={tabValue} index={2}>
+
+          {/* Grid-styled list to match other tables */}
+          <Box sx={{
+            height: 560,
+            width: '100%',
+            '& .MuiDataGrid-root': { border: 'none' },
+            '& .MuiDataGrid-columnHeaders': {
+              backgroundColor: 'var(--color-background-primary)',
+              '& .MuiDataGrid-columnHeaderTitle': { fontWeight: 600, fontSize: '14px' }
+            },
+            '& .MuiDataGrid-cell': {
+              borderBottom: '1px solid var(--color-border-secondary)',
+              display: 'flex',
+              alignItems: 'center'
+            },
+            '& .grid-cell--pad-left': { pl: 3, paddingLeft: '24px !important' },
+            '& .grid-cell--pad-right': { pr: 3, paddingRight: '24px !important' },
+            '& .MuiDataGrid-footerContainer': { px: 3 },
+          }}>
+            <DataGrid
+              rows={complianceGridRows}
+              columns={complianceColumns}
+              disableRowSelectionOnClick
+              pagination
+              paginationModel={paginationModel}
+              onPaginationModelChange={setPaginationModel}
+              pageSizeOptions={[25, 50, 100]}
+              slots={{ pagination: GridPagination, toolbar: GridToolbar }}
+              getRowClassName={(params) => params.row.type === 'group' ? 'compliance-group-row' : ''}
+              sx={{
+                // No background on group rows per design
+                '& .MuiDataGrid-toolbarContainer': {
+                  px: 3,
+                  pb: 1,
+                  borderBottom: '1px solid var(--color-border-primary)',
+                  '& .MuiButton-root': {
+                    color: 'var(--color-text-secondary)',
+                    fontSize: 'var(--font-size-sm)',
+                    fontWeight: 'var(--font-weight-medium)',
+                    textTransform: 'none',
+                    '&:hover': {
+                      color: 'var(--color-text-primary)',
+                      backgroundColor: 'var(--color-primary-light)'
+                    }
+                  }
+                },
+                // Fix positioning for Columns and Filters panels
+                '& .MuiDataGrid-columnsPanel': {
+                  position: 'absolute !important',
+                  top: '44px !important',
+                  left: '24px !important',
+                  zIndex: 'var(--z-popover)'
+                },
+                '& .MuiDataGrid-filterPanel': {
+                  position: 'absolute !important',
+                  top: '44px !important',
+                  left: '100px !important',
+                  zIndex: 'var(--z-popover)'
+                }
+              }}
             />
           </Box>
         </TabPanel>
