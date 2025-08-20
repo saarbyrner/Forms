@@ -9,8 +9,10 @@ export default defineConfig({
   },
   
   build: {
+    target: 'es2015',
     commonjsOptions: {
-      include: [/node_modules/]
+      include: [/node_modules/],
+      transformMixedEsModules: true
     },
     rollupOptions: {
       output: {
@@ -37,5 +39,11 @@ export default defineConfig({
   
   define: {
     global: 'globalThis'
+  },
+  
+  ssr: {
+    resolve: {
+      externalConditions: ['require']
+    }
   }
 })
