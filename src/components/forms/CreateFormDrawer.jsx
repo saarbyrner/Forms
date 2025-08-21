@@ -9,9 +9,9 @@ import {
   Divider,
   TextField,
   Button,
-  Autocomplete,
-  useMediaQuery
+  Autocomplete
 } from '@mui/material'
+import useMediaQuery from '@mui/material/useMediaQuery'
 import { CloseOutlined } from '@mui/icons-material'
 import { useTheme } from '@mui/material/styles'
 import '../../styles/design-tokens.css'
