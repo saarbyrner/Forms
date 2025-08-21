@@ -26,9 +26,5 @@ export default defineConfig({
     ]
   },
   
-  resolve: {
-    alias: {
-      '@mui/x-data-grid': '@mui/x-data-grid/index.js'
-    }
-  }
+  resolve: {}
 })
