@@ -26,5 +26,9 @@ export default defineConfig({
     ]
   },
   
-  resolve: {}
+  resolve: {
+    alias: {
+      '@mui/material/useMediaQuery': '@mui/material/useMediaQuery/useMediaQuery.js'
+    }
+  }
 })
